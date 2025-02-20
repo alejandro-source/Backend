@@ -4,6 +4,7 @@ const bodyParser = require('body-parser');
 const cors = require('cors');
 const jwt = require('jsonwebtoken');
 const dotenv = require('dotenv');
+const nodemailer = require('nodemailer'); // Importar Nodemailer
 
 // Cargar las variables de entorno
 dotenv.config();
@@ -29,6 +30,15 @@ client.connect((err) => {
     return;
   }
   console.log('Conectado a la base de datos');
+});
+
+// Configuración del transporter de Nodemailer
+const transporter = nodemailer.createTransport({
+  service: 'gmail', // Si usas Gmail
+  auth: {
+    user: process.env.EMAIL_USER, // Tu correo de Gmail
+    pass: process.env.EMAIL_PASS  // Contraseña o App Password de Gmail
+  }
 });
 
 // Endpoint de login
@@ -89,6 +99,49 @@ app.post('/api/registro', (req, res) => {
 
       res.status(201).json({ mensaje: 'Usuario registrado exitosamente' });
     });
+  });
+});
+
+// Endpoint para enviar correos al agregar una nueva noticia
+app.post('/api/enviar-correo', (req, res) => {
+  const { titulo, contenido, fecha, imagen } = req.body;
+
+  if (!titulo || !contenido || !fecha || !imagen) {
+    return res.status(400).json({ mensaje: 'Todos los campos son obligatorios' });
+  }
+
+  // Obtener los correos de los usuarios registrados
+  const obtenerCorreos = 'SELECT email FROM usuarios';
+  client.query(obtenerCorreos, (err, usuarios) => {
+    if (err) {
+      console.error('Error al obtener correos de usuarios:', err);
+      return res.status(500).json({ mensaje: 'Error al obtener correos de usuarios' });
+    }
+
+    // Enviar correo a cada usuario
+    usuarios.rows.forEach(usuario => {
+      const mailOptions = {
+        from: process.env.EMAIL_USER, // Tu correo de Gmail
+        to: usuario.email,
+        subject: `Nueva Noticia: ${titulo}`,
+        html: `
+          <h1>${titulo}</h1>
+          <img src="${imagen}" alt="${titulo}" style="width: 100%; max-width: 600px;" />
+          <p>${contenido}</p>
+          <small>Fecha de publicación: ${fecha}</small>
+        `
+      };
+
+      transporter.sendMail(mailOptions, (err, info) => {
+        if (err) {
+          console.error('Error al enviar correo:', err);
+        } else {
+          console.log('Correo enviado: ' + info.response);
+        }
+      });
+    });
+
+    res.status(200).json({ mensaje: 'Correos enviados exitosamente' });
   });
 });
 
