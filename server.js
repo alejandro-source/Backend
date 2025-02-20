@@ -161,6 +161,20 @@ app.post('/api/nueva-noticia', (req, res) => {
   });
 });
 
+// Endpoint para obtener todas las noticias
+app.get('/api/noticias', (req, res) => {
+  const obtenerNoticias = 'SELECT * FROM noticias ORDER BY fecha DESC';
+  client.query(obtenerNoticias, (err, result) => {
+    if (err) {
+      console.error('Error al obtener noticias:', err);
+      return res.status(500).json({ mensaje: 'Error al obtener noticias' });
+    }
+
+    res.status(200).json(result.rows);
+  });
+});
+
+
 // Iniciar el servidor
 app.listen(port, () => {
   console.log(`Servidor Backend corriendo en http://localhost:${port}`);
