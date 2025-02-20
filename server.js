@@ -118,11 +118,15 @@ app.post('/api/enviar-correo', (req, res) => {
       return res.status(500).json({ mensaje: 'Error al obtener correos de usuarios' });
     }
 
-    // Enviar correo a cada usuario
+    if (usuarios.rows.length === 0) {
+      return res.status(404).json({ mensaje: 'No hay usuarios registrados' });
+    }
+
+    // Enviar correo a cada usuario registrado
     usuarios.rows.forEach(usuario => {
       const mailOptions = {
-        from: process.env.EMAIL_USER, // Tu correo de Gmail
-        to: usuario.email,
+        from: process.env.EMAIL_USER,
+        to: usuario.email,  // Correo de Alejandro o de cualquier otro usuario
         subject: `Nueva Noticia: ${titulo}`,
         html: `
           <h1>${titulo}</h1>
@@ -132,15 +136,17 @@ app.post('/api/enviar-correo', (req, res) => {
         `
       };
 
+      // Enviar el correo
       transporter.sendMail(mailOptions, (err, info) => {
         if (err) {
-          console.error('Error al enviar correo:', err);
+          console.error('Error al enviar correo a ' + usuario.email, err);
         } else {
-          console.log('Correo enviado: ' + info.response);
+          console.log('Correo enviado a ' + usuario.email + ': ' + info.response);
         }
       });
     });
 
+    // Responder una vez que todos los correos hayan sido enviados
     res.status(200).json({ mensaje: 'Correos enviados exitosamente' });
   });
 });
