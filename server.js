@@ -9,7 +9,7 @@ const dotenv = require('dotenv');
 dotenv.config();
 
 const app = express();
-const port = process.env.PORT || 3000;  // Usar el puerto proporcionado por Render si existe
+const port = process.env.PORT || 3000;  // Usar el puerto proporcionado por Render 
 
 app.use(cors());
 app.use(bodyParser.json());
