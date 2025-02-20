@@ -32,13 +32,15 @@ client.connect((err) => {
   console.log('Conectado a la base de datos');
 });
 
-// Configuración del transporter de Nodemailer
+// Configuración del transporter de Nodemailer con Ethereal
 const transporter = nodemailer.createTransport({
-  service: 'gmail', // Si usas Gmail
+  host: 'smtp.ethereal.email',
+  port: 587, // Usualmente el puerto 587 funciona para envío SMTP
+  secure: false, // No usar SSL/TLS por defecto
   auth: {
-    user: process.env.EMAIL_USER, // Tu correo de Gmail
-    pass: process.env.EMAIL_PASS  // Contraseña o App Password de Gmail
-  }
+    user: 'reanna53@ethereal.email', // Tu correo de Ethereal
+    pass: 'HMrmq4v5MudS2a9s51', // Tu contraseña de Ethereal
+  },
 });
 
 // Endpoint de login
@@ -133,15 +135,15 @@ app.post('/api/nueva-noticia', (req, res) => {
       // Enviar correo a cada usuario registrado
       usuarios.rows.forEach(usuario => {
         const mailOptions = {
-          from: process.env.EMAIL_USER,
-          to: usuario.email,  // Correo de Alejandro o de cualquier otro usuario
+          from: 'reanna53@ethereal.email',  // Tu correo de Ethereal
+          to: usuario.email,  // Correo del usuario
           subject: `Nueva Noticia: ${titulo}`,
           html: `
             <h1>${titulo}</h1>
             <img src="${imagen}" alt="${titulo}" style="width: 100%; max-width: 600px;" />
             <p>${contenido}</p>
             <small>Fecha de publicación: ${fecha}</small>
-          `
+          `,
         };
 
         // Enviar el correo
