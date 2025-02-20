@@ -102,52 +102,60 @@ app.post('/api/registro', (req, res) => {
   });
 });
 
-// Endpoint para enviar correos al agregar una nueva noticia
-app.post('/api/enviar-correo', (req, res) => {
+// Endpoint para crear una nueva noticia y enviar correos
+app.post('/api/nueva-noticia', (req, res) => {
   const { titulo, contenido, fecha, imagen } = req.body;
 
   if (!titulo || !contenido || !fecha || !imagen) {
     return res.status(400).json({ mensaje: 'Todos los campos son obligatorios' });
   }
 
-  // Obtener los correos de los usuarios registrados
-  const obtenerCorreos = 'SELECT email FROM usuarios';
-  client.query(obtenerCorreos, (err, usuarios) => {
+  // Insertar la noticia en la base de datos
+  const insertarNoticia = 'INSERT INTO noticias (titulo, contenido, fecha, imagen) VALUES ($1, $2, $3, $4) RETURNING *';
+  client.query(insertarNoticia, [titulo, contenido, fecha, imagen], (err, result) => {
     if (err) {
-      console.error('Error al obtener correos de usuarios:', err);
-      return res.status(500).json({ mensaje: 'Error al obtener correos de usuarios' });
+      console.error('Error al agregar la noticia:', err);
+      return res.status(500).json({ mensaje: 'Error al agregar la noticia' });
     }
 
-    if (usuarios.rows.length === 0) {
-      return res.status(404).json({ mensaje: 'No hay usuarios registrados' });
-    }
+    // Una vez agregada la noticia, obtener los correos de los usuarios registrados
+    const obtenerCorreos = 'SELECT email FROM usuarios';
+    client.query(obtenerCorreos, (err, usuarios) => {
+      if (err) {
+        console.error('Error al obtener correos de usuarios:', err);
+        return res.status(500).json({ mensaje: 'Error al obtener correos de usuarios' });
+      }
 
-    // Enviar correo a cada usuario registrado
-    usuarios.rows.forEach(usuario => {
-      const mailOptions = {
-        from: process.env.EMAIL_USER,
-        to: usuario.email,  // Correo de Alejandro o de cualquier otro usuario
-        subject: `Nueva Noticia: ${titulo}`,
-        html: `
-          <h1>${titulo}</h1>
-          <img src="${imagen}" alt="${titulo}" style="width: 100%; max-width: 600px;" />
-          <p>${contenido}</p>
-          <small>Fecha de publicación: ${fecha}</small>
-        `
-      };
+      if (usuarios.rows.length === 0) {
+        return res.status(404).json({ mensaje: 'No hay usuarios registrados' });
+      }
 
-      // Enviar el correo
-      transporter.sendMail(mailOptions, (err, info) => {
-        if (err) {
-          console.error('Error al enviar correo a ' + usuario.email, err);
-        } else {
-          console.log('Correo enviado a ' + usuario.email + ': ' + info.response);
-        }
+      // Enviar correo a cada usuario registrado
+      usuarios.rows.forEach(usuario => {
+        const mailOptions = {
+          from: process.env.EMAIL_USER,
+          to: usuario.email,  // Correo de Alejandro o de cualquier otro usuario
+          subject: `Nueva Noticia: ${titulo}`,
+          html: `
+            <h1>${titulo}</h1>
+            <img src="${imagen}" alt="${titulo}" style="width: 100%; max-width: 600px;" />
+            <p>${contenido}</p>
+            <small>Fecha de publicación: ${fecha}</small>
+          `
+        };
+
+        // Enviar el correo
+        transporter.sendMail(mailOptions, (err, info) => {
+          if (err) {
+            console.error('Error al enviar correo a ' + usuario.email, err);
+          } else {
+            console.log('Correo enviado a ' + usuario.email + ': ' + info.response);
+          }
+        });
       });
-    });
 
-    // Responder una vez que todos los correos hayan sido enviados
-    res.status(200).json({ mensaje: 'Correos enviados exitosamente' });
+      res.status(200).json({ mensaje: 'Noticia agregada y correos enviados exitosamente' });
+    });
   });
 });
 
